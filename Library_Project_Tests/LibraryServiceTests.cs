@@ -1,7 +1,10 @@
-﻿using Library_Project.Model;
+﻿using System;
+using System.Collections.Generic;
+using Library_Project.Model;
 using Library_Project.Services;
 using Library_Project.Services.Interfaces;
 using Moq;
+using Xunit;
 
 namespace Library_Project_Tests
 {
@@ -22,8 +25,7 @@ namespace Library_Project_Tests
         }
 
         /// <summary>
-        /// Перевіряє, що нова книга додається до репозиторію,
-        /// якщо книга з такою назвою ще не існує.
+        /// Перевірка додавання нової книги, якщо вона ще не існує в бібліотеці
         /// </summary>
         [Fact]
         public void AddBook_ShouldAddNewBook_WhenNotExists()
@@ -39,8 +41,7 @@ namespace Library_Project_Tests
         }
 
         /// <summary>
-        /// Перевіряє, що кількість примірників книги збільшується,
-        /// якщо книга вже існує у репозиторії.
+        /// Перевірка збільшення кількості примірників, якщо книга вже існує
         /// </summary>
         [Fact]
         public void AddBook_ShouldIncreaseCopies_WhenBookExists()
@@ -55,8 +56,7 @@ namespace Library_Project_Tests
         }
 
         /// <summary>
-        /// Перевіряє, що метод AddBook генерує виняток
-        /// у разі передачі некоректних вхідних даних.
+        /// Перевірка викидання винятку при невалідних вхідних даних
         /// </summary>
         [Theory]
         [InlineData("", 2)]
@@ -67,8 +67,7 @@ namespace Library_Project_Tests
         }
 
         /// <summary>
-        /// Перевіряє, що книга успішно видається користувачу,
-        /// якщо користувач валідний і примірники доступні.
+        /// Перевірка успішного позичання книги валідним користувачем
         /// </summary>
         [Fact]
         public void BorrowBook_ShouldDecreaseCopies_WhenValidMemberAndAvailable()
@@ -77,7 +76,7 @@ namespace Library_Project_Tests
             _repoMock.Setup(r => r.FindBook("Dune")).Returns(book);
             _memberMock.Setup(m => m.IsValidMember(1)).Returns(true);
 
-            var result = _service.BorrowBook(1, "Dune");
+            bool result = _service.BorrowBook(1, "Dune");
 
             Assert.True(result);
             Assert.Equal(1, book.Copies);
@@ -85,8 +84,7 @@ namespace Library_Project_Tests
         }
 
         /// <summary>
-        /// Перевіряє, що книга не видається,
-        /// якщо кількість доступних примірників дорівнює нулю.
+        /// Перевірка повернення false, якщо немає доступних примірників книги
         /// </summary>
         [Fact]
         public void BorrowBook_ShouldReturnFalse_WhenNoCopies()
@@ -95,7 +93,7 @@ namespace Library_Project_Tests
             _repoMock.Setup(r => r.FindBook("Dune")).Returns(book);
             _memberMock.Setup(m => m.IsValidMember(1)).Returns(true);
 
-            var result = _service.BorrowBook(1, "Dune");
+            bool result = _service.BorrowBook(1, "Dune");
 
             Assert.False(result);
             _notifMock.Verify(
@@ -105,8 +103,7 @@ namespace Library_Project_Tests
         }
 
         /// <summary>
-        /// Перевіряє, що метод BorrowBook генерує виняток,
-        /// якщо користувач не є валідним.
+        /// Перевірка викидання винятку при невалідному користувачі
         /// </summary>
         [Fact]
         public void BorrowBook_ShouldThrow_WhenInvalidMember()
@@ -117,8 +114,7 @@ namespace Library_Project_Tests
         }
 
         /// <summary>
-        /// Перевіряє, що при поверненні книги
-        /// кількість примірників збільшується.
+        /// Перевірка успішного повернення книги
         /// </summary>
         [Fact]
         public void ReturnBook_ShouldIncreaseCopies()
@@ -126,7 +122,7 @@ namespace Library_Project_Tests
             var book = new Book { Title = "Dune", Copies = 1 };
             _repoMock.Setup(r => r.FindBook("Dune")).Returns(book);
 
-            var result = _service.ReturnBook(1, "Dune");
+            bool result = _service.ReturnBook(1, "Dune");
 
             Assert.True(result);
             Assert.Equal(2, book.Copies);
@@ -134,22 +130,20 @@ namespace Library_Project_Tests
         }
 
         /// <summary>
-        /// Перевіряє, що повернення книги неможливе,
-        /// якщо книга відсутня у системі.
+        /// Перевірка повернення false, якщо книгу не знайдено
         /// </summary>
         [Fact]
         public void ReturnBook_ShouldReturnFalse_WhenBookNotFound()
         {
             _repoMock.Setup(r => r.FindBook("Unknown")).Returns((Book)null);
 
-            var result = _service.ReturnBook(1, "Unknown");
+            bool result = _service.ReturnBook(1, "Unknown");
 
             Assert.False(result);
         }
 
         /// <summary>
-        /// Перевіряє, що метод повертає лише книги,
-        /// у яких кількість примірників більша за нуль.
+        /// Перевірка отримання лише доступних книг (кількість > 0)
         /// </summary>
         [Fact]
         public void GetAvailableBooks_ShouldReturnOnlyBooksWithCopies()
@@ -160,18 +154,17 @@ namespace Library_Project_Tests
                 new Book { Title = "B", Copies = 1 },
                 new Book { Title = "C", Copies = 3 },
             };
-
             _repoMock.Setup(r => r.GetAllBooks()).Returns(all);
 
             var available = _service.GetAvailableBooks();
 
-            Assert.Equal(2, available.Count);
+            Assert.NotEmpty(available);
             Assert.Contains(available, b => b.Title == "B");
+            Assert.Equal(2, available.Count);
         }
 
         /// <summary>
-        /// Перевіряє, що метод повертає порожній список,
-        /// якщо жодна книга не доступна.
+        /// Перевірка повернення порожнього списку, якщо доступних книг немає
         /// </summary>
         [Fact]
         public void GetAvailableBooks_ShouldReturnEmpty_WhenNoBooksAvailable()
@@ -180,7 +173,6 @@ namespace Library_Project_Tests
             {
                 new Book { Title = "A", Copies = 0 },
             };
-
             _repoMock.Setup(r => r.GetAllBooks()).Returns(all);
 
             var result = _service.GetAvailableBooks();
@@ -189,8 +181,7 @@ namespace Library_Project_Tests
         }
 
         /// <summary>
-        /// Перевіряє, що метод FindBook викликається
-        /// при спробі видати книгу.
+        /// Перевірка того, що метод пошуку книги викликається хоча б один раз
         /// </summary>
         [Fact]
         public void Verify_MethodsCalled_AtLeastOnce()
@@ -205,15 +196,13 @@ namespace Library_Project_Tests
         }
 
         /// <summary>
-        /// Перевіряє використання предиката It.Is
-        /// для пошуку книги за умовою.
+        /// Приклад використання It.Is з предикатом для аргументу
         /// </summary>
         [Fact]
         public void It_Is_PredicateExample()
         {
             var book = new Book { Title = "Dune", Copies = 2 };
             _repoMock.Setup(r => r.FindBook(It.Is<string>(s => s.StartsWith("D")))).Returns(book);
-
             _memberMock.Setup(m => m.IsValidMember(1)).Returns(true);
 
             var result = _service.BorrowBook(1, "Dune");
@@ -222,18 +211,16 @@ namespace Library_Project_Tests
         }
 
         /// <summary>
-        /// Перевіряє використання It.IsAny
-        /// для прийняття будь-якого значення аргументу.
+        /// Приклад використання It.IsAny для прийняття будь-якого значення аргументу
         /// </summary>
         [Fact]
         public void It_IsAny_ShouldMatchAnyTitle()
         {
             var book = new Book { Title = "Anything", Copies = 2 };
             _repoMock.Setup(r => r.FindBook(It.IsAny<string>())).Returns(book);
-
             _memberMock.Setup(m => m.IsValidMember(1)).Returns(true);
 
-            var result = _service.BorrowBook(1, "RandomTitle");
+            bool result = _service.BorrowBook(1, "RandomTitle");
 
             Assert.True(result);
             _notifMock.Verify(n => n.NotifyBorrow(It.IsAny<int>(), It.IsAny<string>()), Times.Once);
